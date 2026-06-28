@@ -410,3 +410,7 @@ on property:sys.boot_completed=1
     chmod 0666 /d/ged/hal/custom_boost_gpu_freq
     chown system system /d/ged/hal/custom_upbound_gpu_freq
     chmod 0666 /d/ged/hal/custom_upbound_gpu_freq
+
+# DT2W sysfs permissions
+    chown system system /sys/android_touch/doubletap2wake
+    chmod 0664 /sys/android_touch/doubletap2wake
