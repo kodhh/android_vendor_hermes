@@ -1,64 +1,222 @@
+// Copyright (C) 2020 The LineageOS Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+soong_namespace {
+}
+
 cc_prebuilt_library_shared {
     name: "libnvram",
-    vendor: true,
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
     target: {
-             android_arm: {
-                    srcs: ["proprietary/vendor/lib/libnvram.so"],
-             },
-             android_arm64: {
-                    srcs: ["proprietary/vendor/lib64/libnvram.so"],
-             },
-            },
-           strip: {
-                   none:true,
-             },
-    }
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libnvram.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libnvram.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
 
 cc_prebuilt_library_shared {
     name: "libdpframework",
-    vendor_available: true,
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
     target: {
-             android_arm: {
-                    srcs: ["proprietary/vendor/lib/libdpframework.so"],
-             },
-             android_arm64: {
-                    srcs: ["proprietary/vendor/lib64/libdpframework.so"],
-             },
-            },
-           strip: {
-                   none:true,
-             },
-    }
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libdpframework.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libdpframework.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
 
 cc_prebuilt_library_shared {
     name: "libcam.client",
-    vendor: true,
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
     target: {
-             android_arm: {
-                    srcs: ["proprietary/vendor/lib/libcam.client.so"],
-             },
-             android_arm64: {
-                    srcs: ["proprietary/vendor/lib64/libcam.client.so"],
-             },
-            },
-           strip: {
-                   none:true,
-             },
-    }
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libcam.client.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libcam.client.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
 
 cc_prebuilt_library_shared {
     name: "libcam_utils",
-    vendor: true,
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
     target: {
-             android_arm: {
-                    srcs: ["proprietary/vendor/lib/libcam_utils.so"],
-             },
-             android_arm64: {
-                    srcs: ["proprietary/vendor/lib64/libcam_utils.so"],
-             },
-            },
-           strip: {
-                   none:true,
-             },
-    }
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libcam_utils.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libcam_utils.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
 
+cc_prebuilt_library_shared {
+    name: "libvcodecdrv",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libvcodecdrv.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libvcodecdrv.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "libion_mtk",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libion_mtk.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libion_mtk.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "libcam.utils.sensorlistener",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libcam.utils.sensorlistener.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libcam.utils.sensorlistener.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "libged",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/libged.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/libged.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "librilmtk",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/librilmtk.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/librilmtk.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "mtk-ril",
+    owner: "mtk",
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm: {
+            srcs: ["proprietary/vendor/lib/mtk-ril.so"],
+        },
+        android_arm64: {
+            srcs: ["proprietary/vendor/lib64/mtk-ril.so"],
+        },
+    },
+    compile_multilib: "both",
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_binary {
+    name: "pvrsrvctl",
+    owner: "mtk",
+    srcs: ["proprietary/vendor/bin/pvrsrvctl"],
+    prefer: true,
+    vendor: true,
+}
+
+cc_prebuilt_binary {
+    name: "mnld",
+    owner: "mtk",
+    srcs: ["proprietary/vendor/xbin/mnld"],
+    prefer: true,
+    vendor: true,
+}
