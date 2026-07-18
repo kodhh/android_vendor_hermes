@@ -206,6 +206,9 @@ cc_prebuilt_binary {
     name: "pvrsrvctl",
     owner: "mtk",
     srcs: ["proprietary/vendor/bin/pvrsrvctl"],
+    strip: {
+        none: true,
+    },
     prefer: true,
     vendor: true,
 }
@@ -213,7 +216,10 @@ cc_prebuilt_binary {
 cc_prebuilt_binary {
     name: "mnld",
     owner: "mtk",
-    srcs: ["proprietary/vendor/xbin/mnld"],
+    srcs: ["proprietary/vendor/bin/mnld"],
+    strip: {
+        none: true,
+    },
     prefer: true,
     vendor: true,
 }

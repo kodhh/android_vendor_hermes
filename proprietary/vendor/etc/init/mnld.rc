@@ -1,4 +1,4 @@
-service mnld /vendor/xbin/mnld
+service mnld /vendor/bin/mnld
     class main
     user gps
     group gps inet misc sdcard_rw sdcard_r media_rw system radio
