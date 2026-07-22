@@ -231,6 +231,7 @@ on post-fs-data
     chmod 0660 /data/ccci_cfg/md_new_ver.1
 
     setprop vold.post_fs_data_done 1
+    setprop ro.crypto.state unencrypted
     setprop vold.decrypt trigger_restart_framework
 
 # Clear the sim switch flag
