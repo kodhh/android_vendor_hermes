@@ -1,0 +1,6 @@
+cc_library_shared {
+    name: "libaml_symbols",
+    srcs: ["aml_ui.cpp"],
+    shared_libs: ["libui", "libssl"],
+    vendor: true,
+}

@@ -378,4 +378,5 @@ PRODUCT_PACKAGES += \
     librilmtk \
     mtk-ril \
     pvrsrvctl \
-    mnld
+    mnld \
+    libaml_symbols
