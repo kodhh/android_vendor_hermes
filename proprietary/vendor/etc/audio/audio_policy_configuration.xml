@@ -44,7 +44,7 @@
     -->
     <modules>
         <!-- Primary Audio HAL -->
-        <module name="primary" halVersion="3.0">
+        <module name="primary" halVersion="2.0">
             <attachedDevices>
                 <item>Speaker</item>
                 <item>Earpiece</item>
