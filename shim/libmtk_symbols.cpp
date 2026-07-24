@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <string>
+#include <ui/GraphicBuffer.h>
 #include <ui/GraphicBufferMapper.h>
 #include <ui/Rect.h>
 #include <stdint.h>
@@ -29,13 +30,12 @@ void _ZN7android13GraphicBuffer4lockEjPPv(void* thisptr, uint32_t inUsage, void*
 }
 
 void _ZN7android13GraphicBufferC1Ejjij(void* instance, uint32_t inWidth, uint32_t inHeight, int inFormat, uint32_t inUsage) {
-    static void (*func)(void*, uint32_t, uint32_t, int, uint32_t, std::string) = nullptr;
-    static void (*func2)(void*) = nullptr;
-    std::string my_requestorName("<Unknown>");
-    func = (void (*)(void*, uint32_t, uint32_t, int, uint32_t, std::string))dlsym(RTLD_NEXT,
+    static auto func = (void (*)(void*, uint32_t, uint32_t, int, uint32_t, std::string))dlsym(RTLD_NEXT,
         "_ZN7android13GraphicBufferC1EjjijNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE");
-    func2 = (void (*)(void*))dlsym(RTLD_NEXT, "_ZN7android13GraphicBufferC1Ev");
-    if (func) func(instance, inWidth, inHeight, inFormat, inUsage, my_requestorName);
+    if (func) {
+        std::string my_requestorName("<Unknown>");
+        func(instance, inWidth, inHeight, inFormat, inUsage, my_requestorName);
+    }
 }
 
 extern void _ZN7android13GraphicBufferC1EPK13native_handleNS0_16HandleWrapMethodEjjijmj(void*, const native_handle_t*,
