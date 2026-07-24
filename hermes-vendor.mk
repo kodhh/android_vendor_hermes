@@ -379,4 +379,4 @@ PRODUCT_PACKAGES += \
     mtk-ril \
     pvrsrvctl \
     mnld \
-    libaml_symbols
+    libmtk_symbols
