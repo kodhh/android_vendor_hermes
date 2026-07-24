@@ -1,9 +1,12 @@
 cc_library_shared {
     name: "libmtk_symbols",
-    srcs: [
-        "libmtk_symbols.cpp",
-        "aeabi.cpp",
-    ],
+    srcs: ["libmtk_symbols.cpp"],
     shared_libs: ["libui", "libssl"],
+    vendor: true,
+}
+
+cc_library_shared {
+    name: "libaeabi_shim",
+    srcs: ["aeabi.cpp"],
     vendor: true,
 }
