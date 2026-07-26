@@ -1,0 +1,5 @@
+service gas_srv /vendor/bin/gas_srv
+    class core
+    user system
+    group system
+    disabled

@@ -10,3 +10,61 @@ cc_library_shared {
     srcs: ["aeabi.cpp"],
     vendor: true,
 }
+
+cc_library_shared {
+    name: "mtkui",
+    srcs: ["mtkui/libui.cpp"],
+    local_include_dirs: ["mtkui/include"],
+    shared_libs: ["libui"],
+    vendor: true,
+}
+
+cc_library_shared {
+    name: "mtkc",
+    srcs: ["mtkc/libc.cpp"],
+    shared_libs: ["libc"],
+    vendor: true,
+}
+
+cc_library_shared {
+    name: "mtklog",
+    srcs: ["mtklog/liblog.c"],
+    shared_libs: ["liblog"],
+    vendor: true,
+}
+
+cc_library_shared {
+    name: "libshim_mutexdestroy",
+    srcs: ["libshim_mutexdestroy/pthread_mutex_destroy.cpp"],
+    shared_libs: ["libc"],
+    sanitize: {
+        never: true,
+    },
+    vendor: true,
+}
+
+cc_binary {
+    name: "ged_srv",
+    vendor: true,
+    srcs: ["mtk_vendor/ged_srv.c"],
+    shared_libs: [
+        "liblog",
+        "libdl",
+    ],
+    init_rc: ["mtk_vendor/ged_srv.rc"],
+}
+
+cc_binary {
+    name: "gas_srv",
+    vendor: true,
+    srcs: ["mtk_vendor/gas_srv.c"],
+    shared_libs: ["liblog"],
+    init_rc: ["mtk_vendor/gas_srv.rc"],
+}
+
+cc_binary {
+    name: "md_ctrl",
+    vendor: true,
+    srcs: ["mtk_vendor/md_ctrl.c"],
+    shared_libs: ["liblog"],
+}
