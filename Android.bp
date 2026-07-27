@@ -47,7 +47,7 @@ cc_prebuilt_library_shared {
     },
     compile_multilib: "both",
     prefer: true,
-    vendor_available: true,
+    vendor: true,
 }
 
 cc_prebuilt_library_shared {
