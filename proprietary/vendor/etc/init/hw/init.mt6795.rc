@@ -44,6 +44,7 @@ on post-fs-data
     copy /vendor/etc/fstab.mt6795 /data/nvram/fstab.mt6795
     chown root system /data/nvram/fstab.mt6795
     chmod 0644 /data/nvram/fstab.mt6795
+    setprop ro.crypto.state unencrypted
     setprop vold.decrypt trigger_restart_framework
 
 # Create for muxd pts device node to operate without root
