@@ -25,12 +25,9 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/bin/ccci_fsd:$(TARGET_COPY_OUT_VENDOR)/bin/ccci_fsd \
     vendor/xiaomi/hermes/proprietary/vendor/bin/ccci_mdinit:$(TARGET_COPY_OUT_VENDOR)/bin/ccci_mdinit \
     vendor/xiaomi/hermes/proprietary/vendor/bin/fuelgauged:$(TARGET_COPY_OUT_VENDOR)/bin/fuelgauged \
-    vendor/xiaomi/hermes/proprietary/vendor/bin/gas_srv:$(TARGET_COPY_OUT_VENDOR)/bin/gas_srv \
-    vendor/xiaomi/hermes/proprietary/vendor/bin/ged_srv:$(TARGET_COPY_OUT_VENDOR)/bin/ged_srv \
     vendor/xiaomi/hermes/proprietary/vendor/bin/gsm0710muxd:$(TARGET_COPY_OUT_VENDOR)/bin/gsm0710muxd \
     vendor/xiaomi/hermes/proprietary/vendor/bin/guiext-server:$(TARGET_COPY_OUT_VENDOR)/bin/guiext-server \
     vendor/xiaomi/hermes/proprietary/vendor/bin/hw/android.hardware.drm@1.1-service.widevine:$(TARGET_COPY_OUT_VENDOR)/bin/hw/android.hardware.drm@1.1-service.widevine \
-    vendor/xiaomi/hermes/proprietary/vendor/bin/md_ctrl:$(TARGET_COPY_OUT_VENDOR)/bin/md_ctrl \
     vendor/xiaomi/hermes/proprietary/vendor/bin/mtk_agpsd:$(TARGET_COPY_OUT_VENDOR)/bin/mtk_agpsd \
     vendor/xiaomi/hermes/proprietary/vendor/bin/muxreport:$(TARGET_COPY_OUT_VENDOR)/bin/muxreport \
     vendor/xiaomi/hermes/proprietary/vendor/bin/nvram_daemon:$(TARGET_COPY_OUT_VENDOR)/bin/nvram_daemon \
@@ -93,7 +90,6 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/gsm0710muxd.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/gsm0710muxd.rc \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/hw/init.mt6795.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.mt6795.rc \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/hw/init.mt6795.usb.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.mt6795.usb.rc \
-    vendor/xiaomi/hermes/proprietary/vendor/etc/init/md_ctrl.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/md_ctrl.rc \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/mnld.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/mnld.rc \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/mtk_agpsd.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/mtk_agpsd.rc \
     vendor/xiaomi/hermes/proprietary/vendor/etc/init/muxreport.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/muxreport.rc \

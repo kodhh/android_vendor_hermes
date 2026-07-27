@@ -42,29 +42,3 @@ cc_library_shared {
     },
     vendor: true,
 }
-
-cc_binary {
-    name: "ged_srv",
-    vendor: true,
-    srcs: ["mtk_vendor/ged_srv.c"],
-    shared_libs: [
-        "liblog",
-        "libdl",
-    ],
-    init_rc: ["mtk_vendor/ged_srv.rc"],
-}
-
-cc_binary {
-    name: "gas_srv",
-    vendor: true,
-    srcs: ["mtk_vendor/gas_srv.c"],
-    shared_libs: ["liblog"],
-    init_rc: ["mtk_vendor/gas_srv.rc"],
-}
-
-cc_binary {
-    name: "md_ctrl",
-    vendor: true,
-    srcs: ["mtk_vendor/md_ctrl.c"],
-    shared_libs: ["liblog"],
-}
