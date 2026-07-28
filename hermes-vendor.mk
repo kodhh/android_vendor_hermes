@@ -191,7 +191,6 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libfgauge.so:$(TARGET_COPY_OUT_VENDOR)/lib/libfgauge.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libfile_op.so:$(TARGET_COPY_OUT_VENDOR)/lib/libfile_op.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libfmcust.so:$(TARGET_COPY_OUT_VENDOR)/lib/libfmcust.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib/libgas.so:$(TARGET_COPY_OUT_VENDOR)/lib/libgas.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libglslcompiler.so:$(TARGET_COPY_OUT_VENDOR)/lib/libglslcompiler.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libgpu_aux.so:$(TARGET_COPY_OUT_VENDOR)/lib/libgpu_aux.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libhwm.so:$(TARGET_COPY_OUT_VENDOR)/lib/libhwm.so \
@@ -310,7 +309,6 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libfeatureio.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libfeatureio.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libfile_op.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libfile_op.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libfmcust.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libfmcust.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib64/libgas.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libgas.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libglslcompiler.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libglslcompiler.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libgpu_aux.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libgpu_aux.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libhwm.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libhwm.so \
@@ -373,6 +371,4 @@ PRODUCT_PACKAGES += \
     librilmtk \
     mtk-ril \
     pvrsrvctl \
-    mnld \
-    libmtk_symbols \
-    libaeabi_shim
+    mnld

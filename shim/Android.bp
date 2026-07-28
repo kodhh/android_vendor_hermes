@@ -42,3 +42,55 @@ cc_library_shared {
     },
     vendor: true,
 }
+
+cc_binary {
+    name: "ged_srv",
+    srcs: ["mtk_vendor/ged_srv.cpp"],
+    shared_libs: [
+        "libbinder",
+        "libutils",
+        "libcutils",
+        "liblog",
+    ],
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-Wno-unused-parameter",
+    ],
+    vendor: true,
+}
+
+cc_binary {
+    name: "gas_srv",
+    srcs: ["mtk_vendor/gas_srv.c"],
+    shared_libs: [
+        "liblog",
+    ],
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-Wno-unused-parameter",
+    ],
+    vendor: true,
+}
+
+cc_binary {
+    name: "md_ctrl",
+    srcs: ["mtk_vendor/md_ctrl.c"],
+    shared_libs: [
+        "liblog",
+    ],
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-Wno-unused-parameter",
+    ],
+    vendor: true,
+}
+
+prebuilt_etc {
+    name: "md_ctrl.rc",
+    src: "mtk_vendor/md_ctrl.rc",
+    sub_dir: "init",
+    vendor: true,
+}

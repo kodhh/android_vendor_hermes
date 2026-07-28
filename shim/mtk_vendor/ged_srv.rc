@@ -1,5 +1,0 @@
-service ged_srv /vendor/bin/ged_srv
-    class core
-    user system
-    group system
-    disabled
