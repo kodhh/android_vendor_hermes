@@ -98,7 +98,6 @@ public:
     static const String16 descriptor;
 
     GEDService() : BBinder() {
-        mInterfaceName = String16("GED DVFS Service");
     }
 
     ~GEDService() override {}
