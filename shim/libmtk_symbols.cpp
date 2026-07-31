@@ -24,8 +24,10 @@ void _ZN7android13GraphicBuffer4lockEjPPv(void* thisptr, uint32_t inUsage, void*
     _ZN7android13GraphicBuffer4lockEjPPvPiS3_(thisptr, inUsage, vaddr, nullptr, nullptr);
 }
 
+void _ZN7android5Fence4waitEi(int);
+
 void _ZN7android5Fence4waitEj(unsigned int timeout) {
-    Fence::wait(static_cast<int>(timeout));
+    _ZN7android5Fence4waitEi(static_cast<int>(timeout));
 }
 
 }
