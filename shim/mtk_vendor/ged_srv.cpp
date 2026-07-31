@@ -97,10 +97,11 @@ class GEDService : public BBinder {
 public:
     static const String16 descriptor;
 
-    GEDService() : BBinder() {
-    }
-
     ~GEDService() override {}
+
+    const String16 &getInterfaceDescriptor() const override {
+        return descriptor;
+    }
 
     status_t onTransact(uint32_t code, const Parcel &data, Parcel *reply,
                         uint32_t flags) override {
