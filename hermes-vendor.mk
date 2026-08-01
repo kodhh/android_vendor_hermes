@@ -118,7 +118,7 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib/egl/libGLESv1_CM_mtk.so:$(TARGET_COPY_OUT_VENDOR)/lib/egl/libGLESv1_CM_mtk.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/egl/libGLESv2_mtk.so:$(TARGET_COPY_OUT_VENDOR)/lib/egl/libGLESv2_mtk.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/hw/audio.primary.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/audio.primary.mt6795.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib/hw/camera.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/camera.mt6795.so \
+    vendor/xiaomi/hermes/proprietary/vendor/lib/hw/camera.legacy.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/camera.legacy.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/hw/consumerir.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/consumerir.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/hw/gatekeeper.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/gatekeeper.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/hw/gps.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib/hw/gps.mt6795.so \
@@ -249,7 +249,7 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/egl/libGLESv1_CM_mtk.so:$(TARGET_COPY_OUT_VENDOR)/lib64/egl/libGLESv1_CM_mtk.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/egl/libGLESv2_mtk.so:$(TARGET_COPY_OUT_VENDOR)/lib64/egl/libGLESv2_mtk.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/audio.primary.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/audio.primary.mt6795.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/camera.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/camera.mt6795.so \
+    vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/camera.legacy.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/camera.legacy.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/consumerir.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/consumerir.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/gatekeeper.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/gatekeeper.mt6795.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/hw/gps.mt6795.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/gps.mt6795.so \
