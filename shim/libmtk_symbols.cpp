@@ -38,16 +38,6 @@ extern "C" {
 #include <netdb.h>
 #include <openssl/ssl.h>
 
-extern void _ZN7android11BufferQueue17createBufferQueueEPNS_2spINS_22IGraphicBufferProducerEEEPNS1_INS_22IGraphicBufferConsumerEEERKNS1_INS_19IGraphicBufferAllocEEEb(
-    void*, void*, void*, bool);
-
-void _ZN7android11BufferQueue17createBufferQueueEPNS_2spINS_22IGraphicBufferProducerEEEPNS1_INS_22IGraphicBufferConsumerEEEb(
-    void* outProducer, void* outConsumer, bool consumerIsSurfaceFlinger)
-{
-    _ZN7android11BufferQueue17createBufferQueueEPNS_2spINS_22IGraphicBufferProducerEEEPNS1_INS_22IGraphicBufferConsumerEEERKNS1_INS_19IGraphicBufferAllocEEEb(
-        outProducer, outConsumer, 0, consumerIsSurfaceFlinger);
-}
-
 void jpeg_std_error_MTK() {}
 void jpeg_CreateCompress_MTK() {}
 void jpeg_CreateDecompress_MTK() {}
