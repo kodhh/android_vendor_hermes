@@ -361,7 +361,7 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_PACKAGES += \
     libnvram \
-    libdpframework.vendor \
+    libdpframework \
     libcam.client \
     libcam_utils \
     libvcodecdrv \
