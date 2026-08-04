@@ -225,7 +225,6 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libnvram_sec.so:$(TARGET_COPY_OUT_VENDOR)/lib/libnvram_sec.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libnvramagentclient.so:$(TARGET_COPY_OUT_VENDOR)/lib/libnvramagentclient.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/liboclcompiler.so:$(TARGET_COPY_OUT_VENDOR)/lib/liboclcompiler.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib/libperfservicenative.so:$(TARGET_COPY_OUT_VENDOR)/lib/libperfservicenative.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libpq_cust.so:$(TARGET_COPY_OUT_VENDOR)/lib/libpq_cust.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libpq_prot.so:$(TARGET_COPY_OUT_VENDOR)/lib/libpq_prot.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib/libpqservice.so:$(TARGET_COPY_OUT_VENDOR)/lib/libpqservice.so \
@@ -338,7 +337,6 @@ PRODUCT_COPY_FILES += \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libnvram_sec.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libnvram_sec.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libnvramagentclient.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libnvramagentclient.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/liboclcompiler.so:$(TARGET_COPY_OUT_VENDOR)/lib64/liboclcompiler.so \
-    vendor/xiaomi/hermes/proprietary/vendor/lib64/libperfservicenative.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libperfservicenative.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libpq_cust.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libpq_cust.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libpq_prot.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libpq_prot.so \
     vendor/xiaomi/hermes/proprietary/vendor/lib64/libpqservice.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libpqservice.so \

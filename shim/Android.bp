@@ -12,6 +12,18 @@ cc_library_shared {
 }
 
 cc_library_shared {
+    name: "libperfservicenative",
+    srcs: ["perfservicenative.cpp"],
+    shared_libs: ["libutils", "liblog"],
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-Wno-unused-parameter",
+    ],
+    vendor: true,
+}
+
+cc_library_shared {
     name: "mtkui",
     srcs: ["mtkui/libui.cpp"],
     local_include_dirs: ["mtkui/include"],
