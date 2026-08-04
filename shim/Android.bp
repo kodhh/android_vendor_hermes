@@ -62,8 +62,11 @@ cc_binary {
 
 cc_binary {
     name: "gas_srv",
-    srcs: ["mtk_vendor/gas_srv.c"],
+    srcs: ["mtk_vendor/gas_srv.cpp"],
     shared_libs: [
+        "libbinder",
+        "libutils",
+        "libcutils",
         "liblog",
     ],
     cflags: [

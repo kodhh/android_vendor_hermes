@@ -1,10 +1,19 @@
 /*
  * ged_srv rewrite for Android 10 (LineageOS 17.1)
  *
- * Uses libged.so for kernel /proc/ged communication (pure C, no Binder ABI).
- * Implements "GED DVFS Service" Binder interface for HWC queries.
+ * Faithful reconstruction of the original MTK ged_srv (disassembled from the
+ * lineage-16.0 binary). Drives kernel GED DVFS via libged.so and keeps
+ * SurfaceFlinger informed of the vsync offset / FPS bound the way MTK does.
  *
- * Replaces original MTK ged_srv that crashed due to Binder vtable incompatibility.
+ * Restored behavior:
+ *   - SIG44 (vsync)   -> wake the vsync_offset worker
+ *   - SIG45 (fps)     -> read /d/ged/hal/fps_upper_bound and push it to SF
+ *   - SIG46 (suicide) -> graceful shutdown
+ *   - worker thread queries GED event status (0xD) + debug vector (0xE),
+ *     toggles the kernel vsync offset (0 / 0xff85ee00) and notifies
+ *     SurfaceFlinger (transact 0x2712), driving ged_dvfs_probe(+1/-3).
+ *   - setFPS() sends transact 0x2711 to SurfaceFlinger and persists the
+ *     bound in persist.mtk.sf.fps.upper_bound.
  */
 
 #include <dlfcn.h>
@@ -15,11 +24,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/system_properties.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
+#include <cutils/properties.h>
 #include <android/log.h>
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
@@ -41,14 +51,8 @@ typedef int (*ged_dvfs_probe_fn)(ged_handle_t, int);
 typedef int (*ged_dvfs_set_vsync_offset_fn)(int);
 typedef int (*ged_query_info_fn)(ged_handle_t, int, int, void *);
 typedef void *(*ged_log_connect_fn)(const char *);
-typedef void (*ged_log_tpt_print_fn)(void *, void *);
+typedef void (*ged_log_tpt_print_fn)(void *, const char *, ...);
 typedef void (*ged_log_disconnect_fn)(void *);
-
-/* ---- globals ---- */
-static volatile sig_atomic_t g_running = 1;
-static ged_handle_t g_ged = NULL;
-static void *g_log = NULL;
-static pthread_t g_worker_tid;
 
 static ged_create_fn p_create = NULL;
 static ged_destroy_fn p_destroy = NULL;
@@ -59,200 +63,329 @@ static ged_log_connect_fn p_log_connect = NULL;
 static ged_log_tpt_print_fn p_log_tpt_print = NULL;
 static ged_log_disconnect_fn p_log_disconnect = NULL;
 
-/* worker sync */
+static ged_handle_t g_ged = NULL;
+static void *g_log = NULL;
+
+/* vsync-offset worker state */
+static int g_last_ged = 0;
+static int g_vsync_run = 0;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t g_cond = PTHREAD_COND_INITIALIZER;
-static int g_dvfs_active = 0;
+static volatile sig_atomic_t g_exit = 1;
+static pthread_t g_worker_tid = 0;
 
 /* kernel GED signal numbers */
 #define SIG_GED_VSYNC   44
 #define SIG_GED_FPS     45
 #define SIG_GED_SUICIDE 46
 
-/* Binder transaction codes (from reverse engineering) */
-#define TRANSACT_GPU_INFO     0x2711  /* 10001 - query GPU freq info */
-#define TRANSACT_VSYNC_OFFSET 0x2712  /* 10002 - set vsync offset */
+/* Binder transaction codes (MTK SurfaceFlinger) */
+#define TRANSACT_FPS_SET       0x2711  /* 10001 */
+#define TRANSACT_VSYNC_OFFSET  0x2712  /* 10002 */
+#define INTERFACE_TRANSACTION  0x5f4e5446
 
-/* default vsync offset (0xff85ee00 from disassembly) */
-#define DEFAULT_VSYNC_OFFSET  ((int)0xff85ee00)
+#define MAGIC              ((int)0xdea0ddad)
+#define NOCAL_VSYNC_OFFSET ((int)0xff85ee00)
 
-/* ---- signal handler ---- */
-static void sighandler(int sig) {
-    (void)sig;
-    g_running = 0;
-}
+/* GED query info types (kernel ged_type.h) */
+#define GED_EVENT_STATUS 0xD
+#define GED_DEBUG_STATUS 0xE
 
 /* ================================================================
- * Binder service: "GED DVFS Service"
- *
- * HWC (hwcomposer.mt6795.so) calls this service to:
- *   - Query GPU frequency info (transact 0x2711)
- *   - Set vsync offset (transact 0x2712)
- *
- * This replaces the original MTK Binder implementation that crashed
- * due to Android 9->10 Binder ABI incompatibility.
+ * SurfaceFlinger client (matches original controller object)
  * ================================================================ */
 
-class GEDService : public BBinder {
+class SFClient {
 public:
-    static const String16 descriptor;
-
-    ~GEDService() override {}
-
-    const String16 &getInterfaceDescriptor() const override {
-        return descriptor;
+    SFClient() : mSM(NULL), mSF(NULL), mMagic(0) {
+        pthread_mutex_init(&mMutex, NULL);
+        mSM = defaultServiceManager();
     }
 
-    status_t onTransact(uint32_t code, const Parcel &data, Parcel *reply,
-                        uint32_t flags) override {
-        (void)flags;
-
-        switch (code) {
-        case TRANSACT_GPU_INFO: {
-            /* HWC queries GPU frequency info */
-            int param = data.readInt32();
-            if (reply != nullptr) {
-                reply->writeInt32(0);       /* status: OK */
-                reply->writeInt32(param);   /* echo back value */
-            }
-            LOGD("GPU_INFO query: param=%d", param);
-            return NO_ERROR;
-        }
-
-        case TRANSACT_VSYNC_OFFSET: {
-            /* HWC sets vsync offset */
-            int offset = data.readInt32();
-            if (p_set_vsync)
-                p_set_vsync(offset);
-            if (reply != nullptr)
-                reply->writeInt32(0);
-            LOGD("VSYNC_OFFSET set: 0x%x", offset);
-            return NO_ERROR;
-        }
-
-        default:
-            return BBinder::onTransact(code, data, reply, flags);
-        }
+    ~SFClient() {
+        pthread_mutex_destroy(&mMutex);
     }
 
-    status_t dump(int fd, const Vector<String16> &args) override {
-        (void)fd;
-        (void)args;
-        String8 result;
-        result.appendFormat("GED DVFS Service: pid=%d active=%d\n",
-                            getpid(), g_dvfs_active);
-        write(fd, result.string(), result.size());
-        return NO_ERROR;
+    /* fetch SurfaceFlinger + its interface descriptor */
+    void init() {
+        mSF = (mSM != NULL) ? mSM->getService(String16("SurfaceFlinger")) : NULL;
+        if (mSF == NULL) {
+            mMagic = MAGIC;
+            return;
+        }
+        sf_query_descriptor();
+        mMagic = 0;
     }
+
+    /* re-acquire SurfaceFlinger after a failed transaction */
+    void reconnect() {
+        if (mSM == NULL)
+            mSM = defaultServiceManager();
+        mSF = (mSM != NULL) ? mSM->getService(String16("SurfaceFlinger")) : NULL;
+        if (mSF == NULL) {
+            mMagic = MAGIC;
+            return;
+        }
+        sf_query_descriptor();
+        mMagic = 0;
+    }
+
+    /* send {interface token, value} to SurfaceFlinger */
+    status_t transact(uint32_t code, int value) {
+        Parcel data, reply;
+        data.writeInterfaceToken(mDescriptor);
+        data.writeInt32(value);
+        pthread_mutex_lock(&mMutex);
+        status_t st;
+        if (mSF == NULL) {
+            mMagic = MAGIC;
+            st = MAGIC;
+        } else {
+            st = mSF->transact(code, data, &reply, 0);
+        }
+        pthread_mutex_unlock(&mMutex);
+        return st;
+    }
+
+    bool sf_ok() const { return mMagic != MAGIC; }
+
+private:
+    void sf_query_descriptor() {
+        Parcel data, reply;
+        if (mSF == NULL) {
+            mDescriptor = String16();
+            return;
+        }
+        if (mSF->transact(INTERFACE_TRANSACTION, data, &reply, 0) != NO_ERROR) {
+            mDescriptor = String16();
+            return;
+        }
+        mDescriptor = reply.readString16();
+    }
+
+    sp<IServiceManager> mSM;
+    sp<IBinder> mSF;
+    String16 mDescriptor;
+    pthread_mutex_t mMutex;
+    int mMagic;
 };
 
-const String16 GEDService::descriptor("GED DVFS Service");
+static SFClient *g_sf = NULL;
 
-/* ---- FPS upper bound from debugfs ---- */
+/* ================================================================
+ * FPS upper bound handling
+ * ================================================================ */
 
-static int read_fps_upper_bound(void) {
-    int fd = open("/sys/kernel/debug/ged/hal/fps_upper_bound", O_RDONLY);
-    if (fd < 0) {
-        LOGE("cannot open fps_upper_bound: %s", strerror(errno));
-        return -1;
-    }
-    char buf[8] = {0};
-    ssize_t n = read(fd, buf, sizeof(buf) - 1);
-    close(fd);
-    if (n <= 0)
-        return -1;
-    int fps = (int)strtoul(buf, NULL, 10);
-    LOGI("fps_upper_bound = %d", fps);
+static int clamp_fps(int fps) {
+    if (fps <= 0 || fps > 60 || (60 % fps) != 0)
+        return 60;
     return fps;
 }
 
-/* ---- property handling ---- */
+static void setFPS(int fps) {
+    fps = clamp_fps(fps);
 
-static void ged_handle_property(void) {
-    char value[PROP_VALUE_MAX] = {0};
-    __system_property_get("debug.ged.tpt", value);
-    if (value[0] == '\0')
+    status_t st = g_sf->transact(TRANSACT_FPS_SET, fps);
+    if (st == NO_ERROR) {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%d", fps);
+        property_set("persist.mtk.sf.fps.upper_bound", buf);
+        LOGI("FPS is set to %d", fps);
         return;
-    int tpt = (int)strtoul(value, NULL, 10);
-    if (tpt <= 0)
+    }
+
+    if (g_log && p_log_tpt_print)
+        p_log_tpt_print(g_log, "SurfaceFlinger binder operation failed: %x", st);
+    LOGI("Worker Try to reconnect SF");
+    g_sf->reconnect();
+    if (!g_sf->sf_ok()) {
+        if (g_log && p_log_tpt_print)
+            p_log_tpt_print(g_log, "Error on request FPS change");
+        LOGI("Try to reconnect SF");
         return;
-    if (tpt < 10) tpt = 10;
-    if (tpt > 60) tpt = 60;
-    LOGI("debug.ged.tpt = %d", tpt);
-    p_probe(g_ged, tpt);
+    }
+    g_sf->transact(TRANSACT_FPS_SET, fps);
 }
 
-/* ---- worker thread ---- */
+static void readFPSUpperBoundFile(void) {
+    int fd = open("/d/ged/hal/fps_upper_bound", O_RDONLY);
+    if (fd < 0) {
+        LOGE("Error on opening FPS upper bound file! err=%s", strerror(errno));
+        return;
+    }
+    char buf[8] = {0};
+    ssize_t n = read(fd, buf, 2);
+    close(fd);
+    if (n < 0) {
+        LOGE("Error on reading FPS upper bound file! err=%s", strerror(errno));
+        return;
+    }
+    int fps = (int)strtoul(buf, NULL, 10);
+    LOGI("buff=%s, fps=%d", buf, fps);
+    setFPS(fps);
+}
 
-static void *ged_worker_thread(void *arg) {
+static void readFPSProperty(void) {
+    char value[PROP_VALUE_MAX] = {0};
+    if (property_get("persist.mtk.sf.fps.upper_bound", value, NULL) <= 0)
+        return;
+    int fps = (int)strtoul(value, NULL, 10);
+    setFPS(fps);
+}
+
+/* ================================================================
+ * signal handlers
+ * ================================================================ */
+
+static void sig_vsync(int sig) {          /* SIG 44: kick the worker */
+    (void)sig;
+    pthread_mutex_lock(&g_lock);
+    pthread_cond_signal(&g_cond);
+    pthread_mutex_unlock(&g_lock);
+}
+
+static void sig_fps(int sig) {            /* SIG 45: update FPS bound */
+    (void)sig;
+    readFPSUpperBoundFile();
+}
+
+static void sig_exit(int sig) {           /* SIG 46: graceful shutdown */
+    (void)sig;
+    g_exit = 0;
+}
+
+/* ================================================================
+ * vsync offset event loop (matches original eventfunc)
+ * ================================================================ */
+
+static int eventfunc(int arg = 0) {
+    if (arg != 0)
+        g_last_ged = 0;
+
+    int evt = 0, status = 0;
+    if (p_query_info) {
+        p_query_info(g_ged, GED_EVENT_STATUS, 4, &evt);
+        p_query_info(g_ged, GED_DEBUG_STATUS, 4, &status);
+    }
+
+    if (g_log && p_log_tpt_print) {
+        p_log_tpt_print(g_log, "Vsync-Offset Event Vector", evt);
+        p_log_tpt_print(g_log, "Vsync-Offset Debug Vector", status);
+    }
+
+    int new_offset;
+    if (status & 0x1)
+        new_offset = NOCAL_VSYNC_OFFSET;
+    else if (status & 0x2)
+        new_offset = 0;
+    else
+        new_offset = g_last_ged;
+
+    int changed = (new_offset != g_last_ged);
+
+    if (changed || (status & 0x4)) {
+        if (g_log && p_log_tpt_print)
+            p_log_tpt_print(g_log, "Vsync-Offset Debug Vector changed: 0x%x", new_offset);
+        if (p_set_vsync)
+            p_set_vsync(new_offset);
+
+        status_t st = g_sf->transact(TRANSACT_VSYNC_OFFSET, new_offset);
+        if (st != NO_ERROR) {
+            if (g_log && p_log_tpt_print)
+                p_log_tpt_print(g_log, "SurfaceFlinger binder operation failed: %x", st);
+            LOGI("Worker Try to reconnect SF");
+            g_sf->reconnect();
+            if (!g_sf->sf_ok()) {
+                if (g_log && p_log_tpt_print)
+                    p_log_tpt_print(g_log, "Error on request FPS change");
+                LOGI("Try to reconnect SF");
+                g_last_ged = new_offset;
+                return 0;   /* SF unreachable -> boost GPU */
+            }
+            g_sf->transact(TRANSACT_VSYNC_OFFSET, new_offset);
+        }
+    }
+
+    if (changed && new_offset == 0) {
+        usleep(3000000);
+        long v = 0;
+        if (p_query_info)
+            p_query_info(g_ged, 0xC, 8, &v);
+        new_offset = (int)v;
+        if (new_offset == 0) {
+            status_t st = g_sf->transact(TRANSACT_VSYNC_OFFSET, 0);
+            if (st != NO_ERROR) {
+                if (g_log && p_log_tpt_print)
+                    p_log_tpt_print(g_log, "SurfaceFlinger binder operation failed: %x", st);
+                LOGI("Worker Try to reconnect SF");
+                g_sf->reconnect();
+            }
+        }
+    }
+
+    g_last_ged = new_offset;
+    return 1;
+}
+
+/* ================================================================
+ * vsync offset worker thread
+ * ================================================================ */
+
+static void *vsync_offset_worker(void *arg) {
     (void)arg;
 
-    /* read FPS upper bound from debugfs */
-    int fps = read_fps_upper_bound();
-    if (fps > 0)
-        p_probe(g_ged, fps);
+    if (g_log && p_log_tpt_print)
+        p_log_tpt_print(g_log, "void* vsync_offset_worker(void*): tid=%d",
+                        (int)syscall(SYS_gettid));
 
-    /* register "GED DVFS Service" with ServiceManager */
-    sp<IServiceManager> sm = defaultServiceManager();
-    if (sm != nullptr) {
-        sp<GEDService> svc = new GEDService();
-        status_t err = sm->addService(String16("GED DVFS Service"), svc);
-        if (err != OK)
-            LOGE("addService failed: %d", err);
-        else
-            LOGI("GED DVFS Service registered");
-    } else {
-        LOGE("failed to get ServiceManager");
-    }
+    eventfunc(1);
 
-    /* start Binder thread pool */
-    ProcessState::self()->startThreadPool();
-    IPCThreadState::self()->joinThreadPool(true);
+    while (g_exit) {
+        pthread_mutex_lock(&g_lock);
+        if (g_vsync_run) {
+            struct timespec ts;
+            clock_gettime(CLOCK_REALTIME, &ts);
+            ts.tv_sec += 1;
+            pthread_cond_timedwait(&g_cond, &g_lock, &ts);
+        } else {
+            pthread_cond_wait(&g_cond, &g_lock);
+        }
+        pthread_mutex_unlock(&g_lock);
 
-    /* event processing loop */
-    pthread_mutex_lock(&g_lock);
-    g_dvfs_active = 1;
-
-    while (g_running) {
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-        ts.tv_sec += 1;
-        pthread_cond_timedwait(&g_cond, &g_lock, &ts);
-
-        if (!g_running)
+        if (!g_exit)
             break;
 
-        /* query event status from ged */
-        int event_status = 0;
-        if (p_query_info)
-            p_query_info(g_ged, 0xD, 4, &event_status);
-
-        /* handle touch down: set vsync offset */
-        if (event_status & 0x1) {
-            if (p_set_vsync)
-                p_set_vsync(DEFAULT_VSYNC_OFFSET);
-        }
-
-        /* handle GAS event */
-        if (event_status & 0x4) {
-            LOGD("GAS event active");
+        if (eventfunc() == 0) {
+            g_vsync_run = 1;
+            if (p_probe)
+                p_probe(g_ged, 1);
+        } else {
+            g_vsync_run = 0;
+            if (p_probe)
+                p_probe(g_ged, -3);
         }
     }
 
-    g_dvfs_active = 0;
-    pthread_mutex_unlock(&g_lock);
     return NULL;
 }
 
-/* ---- main ---- */
+/* ================================================================
+ * main
+ * ================================================================ */
 
-int main(void) {
-    /* register signal handlers (kernel GED sends these) */
-    signal(SIG_GED_VSYNC, sighandler);
-    signal(SIG_GED_FPS, sighandler);
-    signal(SIG_GED_SUICIDE, sighandler);
+int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
 
-    /* load libged.so (pure C library, no Binder) */
+    signal(SIG_GED_VSYNC, sig_vsync);
+    signal(SIG_GED_FPS, sig_fps);
+    signal(SIG_GED_SUICIDE, sig_exit);
+
+    g_sf = new SFClient();
+    g_sf->init();
+
+    readFPSProperty();
+
     void *libged = dlopen("libged.so", RTLD_NOW);
     if (!libged) {
         LOGE("failed to load libged.so: %s", dlerror());
@@ -274,11 +407,9 @@ int main(void) {
         return 1;
     }
 
-    /* connect to ged log */
     if (p_log_connect)
         g_log = p_log_connect("ged_srv_Log");
 
-    /* create ged instance */
     g_ged = p_create();
     if (!g_ged) {
         LOGE("ged_create failed");
@@ -287,46 +418,43 @@ int main(void) {
         return 1;
     }
 
-    /* set vsync offset and register PID with kernel */
-    p_set_vsync(DEFAULT_VSYNC_OFFSET);
+    pthread_create(&g_worker_tid, NULL, vsync_offset_worker, NULL);
+
+    /* register with kernel GED DVFS */
+    p_set_vsync(NOCAL_VSYNC_OFFSET);
     p_probe(g_ged, (int)getpid());
 
     LOGI("ged DVFS active, pid=%d", getpid());
 
-    /* read initial property */
-    ged_handle_property();
-
-    /* start worker thread (Binder + event loop) */
-    pthread_create(&g_worker_tid, NULL, ged_worker_thread, NULL);
-
-    /* main loop: wait for kernel signals */
-    while (g_running) {
+    /* main loop: blocked until SIG_GED_SUICIDE arrives */
+    while (g_exit)
         pause();
-        if (!g_running)
-            break;
-        /* log TPT on signal */
-        if (g_log && p_log_tpt_print)
-            p_log_tpt_print(g_log, NULL);
-        /* deregister from ged */
-        p_probe(g_ged, -1);
-    }
 
-    /* wake worker thread */
+    __android_log_print(ANDROID_LOG_ERROR, TAG, "ged_srv getting out");
+    if (g_log && p_log_tpt_print)
+        p_log_tpt_print(g_log, "ged_srv getting out");
+    if (p_probe)
+        p_probe(g_ged, -1);
+
+    /* wake worker and join */
     pthread_mutex_lock(&g_lock);
     pthread_cond_signal(&g_cond);
     pthread_mutex_unlock(&g_lock);
     pthread_join(g_worker_tid, NULL);
 
-    /* cleanup */
     if (p_destroy)
         p_destroy(g_ged);
 
+    delete g_sf;
+
+    __android_log_print(ANDROID_LOG_ERROR, TAG, "ged_srv DIE");
     if (g_log) {
-        if (p_log_tpt_print) p_log_tpt_print(g_log, NULL);
-        if (p_log_disconnect) p_log_disconnect(g_log);
+        if (p_log_tpt_print)
+            p_log_tpt_print(g_log, "ged_srv DIE");
+        if (p_log_disconnect)
+            p_log_disconnect(g_log);
     }
 
-    LOGI("ged_srv exiting");
     dlclose(libged);
     return 0;
 }
