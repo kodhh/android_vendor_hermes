@@ -137,13 +137,20 @@ int PerfServiceNative_getLastBoostPid() {
     return perf_stub("getLastBoostPid");
 }
 
-android::String16 PerfServiceNative_getPackName(int pid) {
-    ALOGD("getPackName(%d): stub, empty", pid);
-    return android::String16();
-}
-
 void PerfServiceNative_dumpAll() {
     ALOGD("dumpAll: stub, no-op");
 }
 
 }  // extern "C"
+
+// getPackName() returns android::String16, which is incompatible with C
+// linkage (-Werror,-Wreturn-type-c-linkage), so it must be defined outside
+// the extern "C" block. The asm() label on the declaration keeps the
+// unmangled symbol name that the prebuilt library exported for dlsym()
+// callers.
+android::String16 PerfServiceNative_getPackName(int pid) __asm__("PerfServiceNative_getPackName");
+
+android::String16 PerfServiceNative_getPackName(int pid) {
+    ALOGD("getPackName(%d): stub, empty", pid);
+    return android::String16();
+}
