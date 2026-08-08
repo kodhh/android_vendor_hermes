@@ -5,8 +5,8 @@ on early-init
 
 on init
 # Protect
-    mkdir /protect_f 0771 system system
-    mkdir /protect_s 0771 system system
+    mkdir /mnt/vendor/protect_f 0771 system system
+    mkdir /mnt/vendor/protect_s 0771 system system
 
 # Kernel logs
     chown root system /dev/kmsg
