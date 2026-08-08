@@ -62,9 +62,4 @@ const SSL_METHOD* SSLv3_server_method(void) {
     return SSLv23_server_method();
 }
 
-int android_getaddrinfofornet(const char* hostname, const char* servname,
-        const struct addrinfo* hints, unsigned netid, unsigned mark,
-        struct addrinfo** res) {
-    return getaddrinfo(hostname, servname, hints, res);
-}
 }
