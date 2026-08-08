@@ -1,6 +1,8 @@
 cc_library_shared {
     name: "libmtk_symbols",
-    srcs: ["libmtk_symbols.cpp"],
+    srcs: [
+        "libmtk_symbols.cpp",
+    ],
     shared_libs: ["libgui_vendor", "libui", "libssl"],
     vendor: true,
 }
@@ -8,6 +10,12 @@ cc_library_shared {
 cc_library_shared {
     name: "libaeabi_shim",
     srcs: ["aeabi.cpp"],
+    vendor: true,
+}
+
+cc_library_shared {
+    name: "libviagpsrpc",
+    srcs: ["libviagpsrpc.cpp"],
     vendor: true,
 }
 
