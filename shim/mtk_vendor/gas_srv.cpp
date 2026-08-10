@@ -8,8 +8,13 @@
  *   - serves the IGpuAppSpectatorService transaction set
  *     (1: setSamplingInterval, 2: setGpuUtilizationThreshold,
  *      3: sendAppInfo, 4: changeClassifier)
- *   - monitors GPU loading through libged.so and boosts/releases the GPU
- *     via ged_dvfs_probe when utilization crosses the threshold
+ *   - monitors GPU loading through libged.so (read-only, ged_query_info)
+ *
+ * NOTE: unlike the old shim, this never calls ged_dvfs_probe. The stock
+ * libgas.so only uses ged_create/ged_destroy/ged_query_info; DVFS probing
+ * is ged_srv's job. Writing a pid into the kernel's g_probe_pid here
+ * corrupts ged_srv's vsync-offset coordination (and even sent kernel
+ * vsync signals to pid 1), which disrupted GPU DVFS and caused heat.
  */
 
 #include <dlfcn.h>
@@ -38,14 +43,12 @@ using namespace android;
 typedef void *ged_handle_t;
 typedef ged_handle_t (*ged_create_fn)(void);
 typedef void (*ged_destroy_fn)(ged_handle_t);
-typedef int (*ged_dvfs_probe_fn)(ged_handle_t, int);
 typedef int (*ged_query_info_fn)(ged_handle_t, int, int, void *);
 
 #define GED_LOADING 0
 
 static ged_create_fn p_create = NULL;
 static ged_destroy_fn p_destroy = NULL;
-static ged_dvfs_probe_fn p_probe = NULL;
 static ged_query_info_fn p_query_info = NULL;
 static ged_handle_t g_ged = NULL;
 
@@ -159,7 +162,6 @@ static void *monitor_loop(void *arg) {
             ts.tv_nsec -= 1000000000L;
         }
         pthread_cond_timedwait(&g_state_cond, &g_state_lock, &ts);
-        int threshold = g_gpu_threshold;
         int stop = g_stop;
         pthread_mutex_unlock(&g_state_lock);
 
@@ -173,16 +175,6 @@ static void *monitor_loop(void *arg) {
         pthread_mutex_lock(&g_state_lock);
         g_loading = loading;
         pthread_mutex_unlock(&g_state_lock);
-
-        if (loading < 0)
-            continue;
-
-        if (g_ged && p_probe) {
-            if (loading >= threshold)
-                p_probe(g_ged, 1);   /* busy -> boost GPU */
-            else
-                p_probe(g_ged, -1);  /* idle -> release */
-        }
     }
 
     return NULL;
@@ -206,10 +198,9 @@ int main(int argc, char **argv) {
 
     p_create = (ged_create_fn)dlsym(libged, "ged_create");
     p_destroy = (ged_destroy_fn)dlsym(libged, "ged_destroy");
-    p_probe = (ged_dvfs_probe_fn)dlsym(libged, "ged_dvfs_probe");
     p_query_info = (ged_query_info_fn)dlsym(libged, "ged_query_info");
 
-    if (!p_create || !p_destroy || !p_probe || !p_query_info) {
+    if (!p_create || !p_destroy || !p_query_info) {
         LOGE("failed to resolve ged symbols");
         dlclose(libged);
         return 1;

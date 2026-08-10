@@ -11,7 +11,8 @@
  *   - SIG46 (suicide) -> graceful shutdown
  *   - worker thread queries GED event status (0xD) + debug vector (0xE),
  *     toggles the kernel vsync offset (0 / 0xff85ee00) and notifies
- *     SurfaceFlinger (transact 0x2712), driving ged_dvfs_probe(+1/-3).
+ *     SurfaceFlinger (transact 0x2712), driving ged_dvfs_probe(-2/-3):
+ *       -2 GED_VSYNC_OFFSET_NOT_SYNC (SF unreachable -> boost), -3 SYNC.
  *   - setFPS() sends transact 0x2711 to SurfaceFlinger and persists the
  *     bound in persist.mtk.sf.fps.upper_bound.
  */
@@ -234,24 +235,38 @@ static void readFPSProperty(void) {
 }
 
 /* ================================================================
- * signal handlers
+ * signal handling
+ *
+ * SIG44/45/46 are blocked in every thread and drained by a dedicated
+ * sigwait() thread, so no pthread / binder call ever runs in
+ * async-signal context. SIG45's readFPSUpperBoundFile()->setFPS()
+ * Binder transaction therefore executes in normal thread context and
+ * cannot self-deadlock on the Binder driver lock or on mMutex.
  * ================================================================ */
 
-static void sig_vsync(int sig) {          /* SIG 44: kick the worker */
-    (void)sig;
-    pthread_mutex_lock(&g_lock);
-    pthread_cond_signal(&g_cond);
-    pthread_mutex_unlock(&g_lock);
-}
-
-static void sig_fps(int sig) {            /* SIG 45: update FPS bound */
-    (void)sig;
-    readFPSUpperBoundFile();
-}
-
-static void sig_exit(int sig) {           /* SIG 46: graceful shutdown */
-    (void)sig;
-    g_exit = 0;
+static void *signal_loop(void *arg) {
+    sigset_t *set = (sigset_t *)arg;
+    for (;;) {
+        int sig;
+        if (sigwait(set, &sig) != 0)
+            continue;
+        switch (sig) {
+        case SIG_GED_VSYNC:               /* SIG 44: kick the worker */
+            pthread_mutex_lock(&g_lock);
+            pthread_cond_signal(&g_cond);
+            pthread_mutex_unlock(&g_lock);
+            break;
+        case SIG_GED_FPS:                 /* SIG 45: push FPS bound to SF */
+            readFPSUpperBoundFile();
+            break;
+        case SIG_GED_SUICIDE:             /* SIG 46: graceful shutdown */
+            g_exit = 0;
+            pthread_mutex_lock(&g_lock);
+            pthread_cond_signal(&g_cond);
+            pthread_mutex_unlock(&g_lock);
+            return NULL;
+        }
+    }
 }
 
 /* ================================================================
@@ -341,15 +356,11 @@ static void *vsync_offset_worker(void *arg) {
     eventfunc(1);
 
     while (g_exit) {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += 1;
         pthread_mutex_lock(&g_lock);
-        if (g_vsync_run) {
-            struct timespec ts;
-            clock_gettime(CLOCK_REALTIME, &ts);
-            ts.tv_sec += 1;
-            pthread_cond_timedwait(&g_cond, &g_lock, &ts);
-        } else {
-            pthread_cond_wait(&g_cond, &g_lock);
-        }
+        pthread_cond_timedwait(&g_cond, &g_lock, &ts);  /* bounded: no lost-wakeup hang */
         pthread_mutex_unlock(&g_lock);
 
         if (!g_exit)
@@ -358,11 +369,11 @@ static void *vsync_offset_worker(void *arg) {
         if (eventfunc() == 0) {
             g_vsync_run = 1;
             if (p_probe)
-                p_probe(g_ged, 1);
+                p_probe(g_ged, -2);  /* GED_VSYNC_OFFSET_NOT_SYNC: SF down */
         } else {
             g_vsync_run = 0;
             if (p_probe)
-                p_probe(g_ged, -3);
+                p_probe(g_ged, -3);  /* GED_VSYNC_OFFSET_SYNC */
         }
     }
 
@@ -377,9 +388,13 @@ int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
-    signal(SIG_GED_VSYNC, sig_vsync);
-    signal(SIG_GED_FPS, sig_fps);
-    signal(SIG_GED_SUICIDE, sig_exit);
+    /* block GED signals everywhere; a sigwait() thread drains them */
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIG_GED_VSYNC);
+    sigaddset(&set, SIG_GED_FPS);
+    sigaddset(&set, SIG_GED_SUICIDE);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
 
     g_sf = new SFClient();
     g_sf->init();
@@ -418,6 +433,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    pthread_t sigtid;
+    pthread_create(&sigtid, NULL, signal_loop, &set);
     pthread_create(&g_worker_tid, NULL, vsync_offset_worker, NULL);
 
     /* register with kernel GED DVFS */
@@ -426,9 +443,8 @@ int main(int argc, char **argv) {
 
     LOGI("ged DVFS active, pid=%d", getpid());
 
-    /* main loop: blocked until SIG_GED_SUICIDE arrives */
-    while (g_exit)
-        pause();
+    /* main waits until SIG_GED_SUICIDE is consumed by the signal thread */
+    pthread_join(sigtid, NULL);
 
     __android_log_print(ANDROID_LOG_ERROR, TAG, "ged_srv getting out");
     if (g_log && p_log_tpt_print)
