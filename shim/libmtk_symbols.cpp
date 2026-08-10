@@ -36,6 +36,7 @@ void _ZN7android5Fence4waitEj(unsigned int timeout) {
 
 extern "C" {
 #include <netdb.h>
+#include <sys/socket.h>
 #include <openssl/ssl.h>
 
 void jpeg_std_error_MTK() {}
@@ -61,5 +62,21 @@ const SSL_METHOD* SSLv3_client_method(void) {
 const SSL_METHOD* SSLv3_server_method(void) {
     return SSLv23_server_method();
 }
+
+int android_getaddrinfofornet(const char* hostname, const char* servname,
+                              const struct addrinfo* hints, unsigned int netid,
+                              struct addrinfo** res) {
+    (void)netid;
+    return getaddrinfo(hostname, servname, hints, res);
+}
+__asm__(".symver android_getaddrinfofornet, android_getaddrinfofornet@LIBC_PRIVATE");
+
+int android_getnameinfofornet(const struct sockaddr* sa, socklen_t salen,
+                              char* host, size_t hostlen, char* serv,
+                              size_t servlen, int flags, unsigned int netid) {
+    (void)netid;
+    return getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
+}
+__asm__(".symver android_getnameinfofornet, android_getnameinfofornet@LIBC_PRIVATE");
 
 }

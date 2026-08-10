@@ -1,0 +1,5 @@
+LIBC_PRIVATE {
+    global:
+        android_getaddrinfofornet;
+        android_getnameinfofornet;
+};

@@ -4,6 +4,7 @@ cc_library_shared {
         "libmtk_symbols.cpp",
     ],
     shared_libs: ["libgui_vendor", "libui", "libssl"],
+    version_script: "libmtk_symbols.map",
     vendor: true,
 }
 
